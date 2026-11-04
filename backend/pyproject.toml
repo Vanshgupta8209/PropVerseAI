@@ -69,3 +69,6 @@ python_files = ["test_*.py"]
 [tool.pyright]
 extraPaths = [".", "src"]
 
+[tool.vercel]
+entrypoint = "backend.src.main:app"
+

@@ -18,6 +18,9 @@ ENV/
 htmlcov/
 *.db
 *.sqlite3
+*.egg-info/
+*.whl
+build/
 
 # Node & Frontend Build
 node_modules/

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Building2, Upload, Sparkles, CheckCircle2 } from "lucide-react";
+import { X, Building2, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuthStore } from "@/store";

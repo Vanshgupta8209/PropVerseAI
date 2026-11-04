@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, CheckCheck, Search, MessageSquare, Loader2, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +17,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null);
 
   // 1. Fetch or initialize chat rooms
-  const initRooms = async () => {
+  const initRooms = useCallback(async () => {
     setLoadingRooms(true);
     try {
       let { data: existingRooms } = await supabase
@@ -56,7 +56,7 @@ export default function ChatPage() {
     } finally {
       setLoadingRooms(false);
     }
-  };
+  }, [user?.id]);
 
   // 2. Fetch messages for active room
   const fetchMessages = async (roomId) => {
@@ -77,7 +77,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     initRooms();
-  }, [user?.id]);
+  }, [initRooms]);
 
   useEffect(() => {
     if (!activeRoom?.id) return;

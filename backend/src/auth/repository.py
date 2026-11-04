@@ -68,7 +68,7 @@ class UserRepository:
         result = await self.db.execute(
             update(User)
             .where(User.id == user_id)
-            .values(is_verified=True, updated_at=datetime.now(timezone.utc))
+            .values({User.is_verified: True, User.updated_at: datetime.now(timezone.utc)})
         )
         return int(getattr(result, "rowcount", 0)) > 0
 
@@ -76,7 +76,7 @@ class UserRepository:
         result = await self.db.execute(
             update(User)
             .where(User.id == user_id)
-            .values(password_hash=password_hash, updated_at=datetime.now(timezone.utc))
+            .values({User.password_hash: password_hash, User.updated_at: datetime.now(timezone.utc)})
         )
         return int(getattr(result, "rowcount", 0)) > 0
 

@@ -10,6 +10,7 @@ src/auth/repository.py
 src/auth/router.py
 src/auth/schemas.py
 src/auth/service.py
+src/chat/router.py
 src/core/__init__.py
 src/core/config.py
 src/core/database.py
@@ -18,7 +19,13 @@ src/core/exceptions.py
 src/core/middleware.py
 src/core/redis.py
 src/core/security.py
+src/core/seed_properties.py
+src/core/seed_supabase_auth.py
+src/core/seed_users.py
+src/core/supabase_client.py
+src/dashboard/router.py
 src/loans/router.py
+src/posts/router.py
 src/properties/__init__.py
 src/properties/models.py
 src/properties/repository.py
@@ -30,3 +37,4 @@ src/propverse_ai_backend.egg-info/SOURCES.txt
 src/propverse_ai_backend.egg-info/dependency_links.txt
 src/propverse_ai_backend.egg-info/requires.txt
 src/propverse_ai_backend.egg-info/top_level.txt
+tests/test_api.py

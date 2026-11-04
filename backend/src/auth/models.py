@@ -13,13 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.database import Base
 
 
-class UserRole(str, enum.Enum):
-    """Supported platform roles."""
-    BUYER = "buyer"
-    SELLER = "seller"
-    BUILDER = "builder"
-    AGENT = "agent"
-    ADMIN = "admin"
+from src.auth.schemas import UserRole
 
 
 class User(Base):

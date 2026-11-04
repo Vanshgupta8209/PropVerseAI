@@ -19,7 +19,6 @@ import {
   BedDouble,
   Bath,
   Maximize,
-  Heart,
   Eye,
 } from "lucide-react";
 import { cn, formatPrice, formatArea } from "@/lib/utils";

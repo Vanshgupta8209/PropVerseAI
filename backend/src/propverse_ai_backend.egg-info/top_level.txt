@@ -1,7 +1,10 @@
 __init__
 ai
 auth
+chat
 core
+dashboard
 loans
 main
+posts
 properties

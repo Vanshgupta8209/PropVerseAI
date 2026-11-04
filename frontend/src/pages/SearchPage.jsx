@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, Search, Sparkles, MapPin, BedDouble, Bath, Maximize, BadgeCheck, Eye } from "lucide-react";
+import { Brain, Search, Sparkles, MapPin, BedDouble, Bath, Maximize, BadgeCheck } from "lucide-react";
 import { formatPrice, formatArea } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -24,7 +24,7 @@ export default function SearchPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const performSearch = async (searchQuery) => {
+  const performSearch = useCallback(async (searchQuery) => {
     if (!searchQuery?.trim()) return;
     setIsSearching(true);
     setSearched(true);
@@ -59,14 +59,14 @@ export default function SearchPage() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [setSearchParams]);
 
   useEffect(() => {
     const q = searchParams.get("q");
     if (q) {
       performSearch(q);
     }
-  }, []);
+  }, [searchParams, performSearch]);
 
   const handleSearch = (e) => {
     e?.preventDefault();

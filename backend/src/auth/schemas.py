@@ -2,12 +2,57 @@
 Auth Pydantic schemas — request/response DTOs for authentication endpoints.
 """
 
+from __future__ import annotations
+
+import enum
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel as _PydanticBaseModel
+from pydantic import ConfigDict, EmailStr, Field, field_validator
 
-from src.auth.models import UserRole
+
+class BaseModel(_PydanticBaseModel):
+    """Base Pydantic model for request/response DTOs."""
+    pass
+
+
+class UserRole(str, enum.Enum):
+    """Supported platform roles."""
+    BUYER = "buyer"
+    SELLER = "seller"
+    BUILDER = "builder"
+    AGENT = "agent"
+    ADMIN = "admin"
+
+
+# ── User DTOs ────────────────────────────────────────────────────
+class UserPublic(BaseModel):
+    """Public user representation — no sensitive fields."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    email: str
+    full_name: str | None
+    role: UserRole
+    avatar_url: str | None = None
+    city: str | None = None
+    state: str | None = None
+    bio: str | None = None
+    company_name: str | None = None
+    phone: str | None = None
+    is_verified: bool = False
+    created_at: datetime | None = None
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = Field(None, min_length=2, max_length=200)
+    phone: str | None = Field(None, max_length=20)
+    avatar_url: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=100)
+    state: str | None = Field(None, max_length=100)
+    bio: str | None = Field(None, max_length=2000)
+    company_name: str | None = Field(None, max_length=200)
 
 
 # ── Registration ─────────────────────────────────────────────────
@@ -49,7 +94,7 @@ class TokenResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds
-    user: "UserPublic"
+    user: UserPublic
 
 
 class RefreshTokenRequest(BaseModel):
@@ -88,35 +133,6 @@ class ResetPasswordRequest(BaseModel):
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit")
         return v
-
-
-# ── User DTOs ────────────────────────────────────────────────────
-class UserPublic(BaseModel):
-    """Public user representation — no sensitive fields."""
-    id: uuid.UUID
-    email: str
-    full_name: str | None
-    role: UserRole
-    avatar_url: str | None = None
-    city: str | None = None
-    state: str | None = None
-    bio: str | None = None
-    company_name: str | None = None
-    phone: str | None = None
-    is_verified: bool = False
-    created_at: datetime | None = None
-
-    model_config = {"from_attributes": True}
-
-
-class UserUpdate(BaseModel):
-    full_name: str | None = Field(None, min_length=2, max_length=200)
-    phone: str | None = Field(None, max_length=20)
-    avatar_url: str | None = Field(None, max_length=500)
-    city: str | None = Field(None, max_length=100)
-    state: str | None = Field(None, max_length=100)
-    bio: str | None = Field(None, max_length=2000)
-    company_name: str | None = Field(None, max_length=200)
 
 
 # ── Generic Messages ────────────────────────────────────────────

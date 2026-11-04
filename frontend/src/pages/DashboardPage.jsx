@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store";
 import { Card } from "@/components/ui/Card";
@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       if (user?.id) {
@@ -76,11 +76,11 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [user?.id]);
+  }, [fetchDashboardData]);
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pt-24 pb-20">

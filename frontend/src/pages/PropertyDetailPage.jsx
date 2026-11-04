@@ -79,7 +79,7 @@ export default function PropertyDetailPage() {
         if (data) setBookmarked(true);
       });
     }
-  }, [property?.id, user?.id]);
+  }, [property?.id, property?.owner_id, user?.id]);
 
   const handleToggleBookmark = async () => {
     if (!user?.id || !property?.id) return;

@@ -14,17 +14,20 @@ from src.core.config import get_settings
 logger = logging.getLogger("propverse.ai")
 settings = get_settings()
 
+genai: Any = None
+_gemini_available = False
+
 try:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=FutureWarning)
-        import google.generativeai as genai
+        import google.generativeai as genai_module
 
-    if settings.GEMINI_API_KEY:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        _gemini_available = True
-    else:
-        _gemini_available = False
+        genai = genai_module
+        if settings.GEMINI_API_KEY:
+            genai.configure(api_key=settings.GEMINI_API_KEY)  # type: ignore
+            _gemini_available = True
 except Exception:
+    genai = None
     _gemini_available = False
 
 
@@ -150,9 +153,9 @@ class AIService:
         property_type = details.get("property_type", "Apartment")
         area = details.get("area_sqft", 1200)
 
-        if _gemini_available and self.gemini_key:
+        if _gemini_available and self.gemini_key and genai is not None:
             try:
-                model = genai.GenerativeModel(settings.AI_MODEL)
+                model = genai.GenerativeModel(settings.AI_MODEL)  # type: ignore
                 prompt = (
                     f"Write a compelling, professional 3-sentence real estate property description for a property listing: "
                     f"Title: {title}, Type: {bedrooms}BHK {property_type}, City: {city}, Area: {area} sq.ft. "
@@ -174,9 +177,9 @@ class AIService:
         """Conversational AI real estate advisor using Gemini LLM with structured fallback."""
         msg = user_message.lower()
 
-        if _gemini_available and self.gemini_key:
+        if _gemini_available and self.gemini_key and genai is not None:
             try:
-                model = genai.GenerativeModel(settings.AI_MODEL)
+                model = genai.GenerativeModel(settings.AI_MODEL)  # type: ignore
                 system_prompt = (
                     "You are PropVerse AI Advisor, an expert real estate AI assistant. "
                     "Provide concise, helpful, and professional advice regarding property buying, selling, legal queries, market trends, or home loans in India."

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Building2, Plus, Eye, MessageSquare, TrendingUp, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -15,7 +15,7 @@ export default function SellerDashboard() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchSellerListings = async () => {
+  const fetchSellerListings = useCallback(async () => {
     setLoading(true);
     try {
       if (user?.id) {
@@ -36,11 +36,11 @@ export default function SellerDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchSellerListings();
-  }, [user?.id]);
+  }, [fetchSellerListings]);
 
   const handleDeleteListing = async (propertyId) => {
     if (!window.confirm("Are you sure you want to delete this property listing from Supabase?")) return;

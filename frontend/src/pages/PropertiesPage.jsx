@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import {
   Search, SlidersHorizontal, Grid3X3, List, MapPin, BedDouble, Bath,
-  Maximize, Heart, Eye, BadgeCheck, X, Plus, Sparkles, Loader2,
+  Maximize, Heart, Eye, BadgeCheck, X, Plus, Loader2,
 } from "lucide-react";
 import { cn, formatPrice, formatArea } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -115,7 +115,7 @@ export default function PropertiesPage() {
   });
 
   // Fetch properties from Supabase live database
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -130,10 +130,10 @@ export default function PropertiesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Fetch user favorites
-  const fetchFavorites = async () => {
+  const fetchFavorites = useCallback(async () => {
     if (!user?.id) return;
     try {
       const { data } = await supabase
@@ -146,7 +146,7 @@ export default function PropertiesPage() {
     } catch {
       // Ignore error
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchProperties();
@@ -167,7 +167,7 @@ export default function PropertiesPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [fetchProperties, fetchFavorites]);
 
   const handleToggleFavorite = async (propertyId) => {
     if (!user?.id) return;

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn, formatPrice, formatArea } from "@/lib/utils";
 import { propertiesApi } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";

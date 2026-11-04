@@ -43,6 +43,12 @@ async def lifespan(app: FastAPI):
 
     # Initialize services
     try:
+        import src.auth.models  # noqa: F401
+        import src.properties.models  # noqa: F401
+        import src.chat.models  # noqa: F401
+        import src.posts.models  # noqa: F401
+        import src.dashboard.models  # noqa: F401
+
         await init_db()
         logger.info("✓ Database connected")
 

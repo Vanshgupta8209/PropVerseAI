@@ -3,9 +3,13 @@ Dashboard Router — API endpoints for consolidated user metrics and system stat
 """
 
 from fastapi import APIRouter
-from sqlalchemy import text
+from sqlalchemy import func, select
 
+from src.auth.models import User
+from src.chat.models import Message
 from src.core.dependencies import CurrentUserId, DBSession
+from src.dashboard.models import Notification, PropertyInquiry
+from src.properties.models import Bookmark, Property
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -14,31 +18,31 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 async def get_dashboard_stats(user_id: CurrentUserId, db: DBSession):
     """Retrieve real database counts for current user."""
     # 1. Listings count
-    res_listings = await db.execute(text("SELECT COUNT(*) FROM properties WHERE owner_id = :uid;"), {"uid": user_id})
-    my_listings_count = res_listings.scalar() or 0
+    stmt_listings = select(func.count(Property.id)).where(Property.owner_id == user_id)
+    my_listings_count = (await db.execute(stmt_listings)).scalar() or 0
 
     # 2. Saved properties count
-    res_saved = await db.execute(text("SELECT COUNT(*) FROM property_favorites WHERE user_id = :uid;"), {"uid": user_id})
-    saved_count = res_saved.scalar() or 0
+    stmt_saved = select(func.count(Bookmark.id)).where(Bookmark.user_id == user_id)
+    saved_count = (await db.execute(stmt_saved)).scalar() or 0
 
     # 3. Messages count
-    res_msg = await db.execute(text("SELECT COUNT(*) FROM messages WHERE sender_id = :uid;"), {"uid": user_id})
-    messages_count = res_msg.scalar() or 0
+    stmt_msg = select(func.count(Message.id)).where(Message.sender_id == user_id)
+    messages_count = (await db.execute(stmt_msg)).scalar() or 0
 
     # 4. Notifications count
-    res_notif = await db.execute(text("SELECT COUNT(*) FROM notifications WHERE user_id = :uid;"), {"uid": user_id})
-    notifications_count = res_notif.scalar() or 0
+    stmt_notif = select(func.count(Notification.id)).where(Notification.user_id == user_id)
+    notifications_count = (await db.execute(stmt_notif)).scalar() or 0
 
     # 5. Inquiries count
-    res_inq = await db.execute(text("SELECT COUNT(*) FROM property_inquiries WHERE user_id = :uid;"), {"uid": user_id})
-    inquiries_count = res_inq.scalar() or 0
+    stmt_inq = select(func.count(PropertyInquiry.id)).where(PropertyInquiry.user_id == user_id)
+    inquiries_count = (await db.execute(stmt_inq)).scalar() or 0
 
     # 6. Total users & properties for platform
-    res_u = await db.execute(text("SELECT COUNT(*) FROM profiles;"))
-    total_users = res_u.scalar() or 0
+    stmt_u = select(func.count(User.id))
+    total_users = (await db.execute(stmt_u)).scalar() or 0
 
-    res_p = await db.execute(text("SELECT COUNT(*) FROM properties;"))
-    total_properties = res_p.scalar() or 0
+    stmt_p = select(func.count(Property.id))
+    total_properties = (await db.execute(stmt_p)).scalar() or 0
 
     return {
         "user_id": str(user_id),

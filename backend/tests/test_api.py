@@ -1,11 +1,13 @@
 """
 Comprehensive backend test suite for PropVerse AI platform.
-Tests system health, loans/EMI calculator, AI endpoints, authentication, and property routes.
+Tests system health, loans/EMI calculator, AI endpoints, authentication, property routes,
+community posts feed, chat rooms, and dashboard metrics.
 """
 
 import pytest
 from fastapi.testclient import TestClient
 from src.main import app
+
 
 def test_health_check(client):
     """Test health check endpoint."""
@@ -36,7 +38,7 @@ def test_loan_emi_calculation(client):
     payload = {
         "loan_amount": 5000000,
         "interest_rate": 8.5,
-        "tenure_years": 20
+        "tenure_years": 20,
     }
     response = client.post("/api/v1/loans/calculate-emi", json=payload)
     assert response.status_code == 200
@@ -52,7 +54,7 @@ def test_loan_eligibility(client):
         "monthly_income": 150000,
         "existing_emis": 20000,
         "interest_rate": 8.5,
-        "tenure_years": 20
+        "tenure_years": 20,
     }
     response = client.post("/api/v1/loans/eligibility", json=payload)
     assert response.status_code == 200
@@ -77,7 +79,7 @@ def test_ai_price_prediction(client):
         "city": "Mumbai",
         "area_sqft": 1200,
         "bedrooms": 3,
-        "property_type": "apartment"
+        "property_type": "apartment",
     }
     response = client.post("/api/v1/ai/predict-price", json=payload)
     assert response.status_code == 200
@@ -94,7 +96,7 @@ def test_ai_description_generator(client):
         "city": "Mumbai",
         "bedrooms": 3,
         "property_type": "apartment",
-        "area_sqft": 1500
+        "area_sqft": 1500,
     }
     response = client.post("/api/v1/ai/generate-description", json=payload)
     assert response.status_code == 200
@@ -117,7 +119,7 @@ def test_auth_registration_validation(client):
     invalid_payload = {
         "email": "invalid-email",
         "password": "simple",
-        "full_name": "T"
+        "full_name": "T",
     }
     response = client.post("/api/v1/auth/register", json=invalid_payload)
     assert response.status_code == 422
@@ -161,6 +163,44 @@ def test_properties_my_listings_route_ordering(client):
 def test_properties_my_bookmarks_route_ordering(client):
     """Verify route ordering fix: /properties/my/bookmarks returns 401 (auth required), NOT 422 (UUID validation error)."""
     response = client.get("/api/v1/properties/my/bookmarks")
+    assert response.status_code == 401
+    data = response.json()
+    assert data["error"] == "AUTHENTICATION_FAILED"
+
+
+def test_chat_rooms(client):
+    """Test chat rooms listing endpoint."""
+    response = client.get("/api/v1/chat/rooms")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_posts_feed(client):
+    """Test community posts feed endpoint."""
+    response = client.get("/api/v1/posts")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_dashboard_stats_auth_protection(client):
+    """Verify /dashboard/stats requires authentication."""
+    response = client.get("/api/v1/dashboard/stats")
+    assert response.status_code == 401
+    data = response.json()
+    assert data["error"] == "AUTHENTICATION_FAILED"
+
+
+def test_chat_create_room_auth_protection(client):
+    """Verify /chat/rooms POST requires authentication."""
+    response = client.post("/api/v1/chat/rooms", json={"room_name": "Test Room"})
+    assert response.status_code == 401
+    data = response.json()
+    assert data["error"] == "AUTHENTICATION_FAILED"
+
+
+def test_posts_create_auth_protection(client):
+    """Verify /posts POST requires authentication."""
+    response = client.post("/api/v1/posts", json={"content": "Hello PropVerse!"})
     assert response.status_code == 401
     data = response.json()
     assert data["error"] == "AUTHENTICATION_FAILED"

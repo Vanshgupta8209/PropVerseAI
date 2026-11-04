@@ -4,13 +4,13 @@ Posts Router — API endpoints for feed posts, likes, and comments.
 
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel, Field
-from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import desc, select
 
-from src.core.dependencies import CurrentUserId, DBSession, OptionalUserId
-from src.auth.schemas import MessageResponse
+from src.auth.models import User
+from src.core.dependencies import CurrentUserId, DBSession
+from src.posts.models import Post, PostComment, PostLike
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -29,18 +29,26 @@ class CommentCreate(BaseModel):
 @router.get("", summary="Get all feed posts")
 async def get_posts(db: DBSession, limit: int = Query(20, ge=1, le=100)):
     """Fetch recent feed posts with user details."""
-    query = """
-        SELECT 
-            p.id, p.user_id, p.property_id, p.title, p.content, p.image_url, 
-            p.likes_count, p.comments_count, p.created_at,
-            prof.full_name, prof.avatar_url, prof.role
-        FROM posts p
-        LEFT JOIN profiles prof ON p.user_id = prof.id
-        ORDER BY p.created_at DESC
-        LIMIT :limit;
-    """
-    from sqlalchemy import text
-    res = await db.execute(text(query), {"limit": limit})
+    stmt = (
+        select(
+            Post.id,
+            Post.user_id,
+            Post.property_id,
+            Post.title,
+            Post.content,
+            Post.image_url,
+            Post.likes_count,
+            Post.comments_count,
+            Post.created_at,
+            User.full_name,
+            User.avatar_url,
+            User.role,
+        )
+        .outerjoin(User, Post.user_id == User.id)
+        .order_by(desc(Post.created_at))
+        .limit(limit)
+    )
+    res = await db.execute(stmt)
     rows = res.mappings().all()
     return [dict(r) for r in rows]
 
@@ -48,58 +56,78 @@ async def get_posts(db: DBSession, limit: int = Query(20, ge=1, le=100)):
 @router.post("", status_code=status.HTTP_201_CREATED, summary="Create a feed post")
 async def create_post(data: PostCreate, user_id: CurrentUserId, db: DBSession):
     """Create a new post in the database."""
-    from sqlalchemy import text
-    post_id = uuid.uuid4()
-    query = """
-        INSERT INTO posts (id, user_id, property_id, title, content, image_url, likes_count, comments_count, created_at, updated_at)
-        VALUES (:id, :user_id, :property_id, :title, :content, :image_url, 0, 0, NOW(), NOW())
-        RETURNING *;
-    """
-    res = await db.execute(text(query), {
-        "id": post_id,
-        "user_id": user_id,
-        "property_id": data.property_id,
-        "title": data.title,
-        "content": data.content,
-        "image_url": data.image_url,
-    })
+    post = Post(
+        user_id=user_id,
+        property_id=data.property_id,
+        title=data.title,
+        content=data.content,
+        image_url=data.image_url,
+        likes_count=0,
+        comments_count=0,
+    )
+    db.add(post)
     await db.commit()
-    row = res.mappings().first()
-    return dict(row) if row else {"id": str(post_id), "status": "created"}
+    await db.refresh(post)
+    return {
+        "id": post.id,
+        "user_id": post.user_id,
+        "property_id": post.property_id,
+        "title": post.title,
+        "content": post.content,
+        "image_url": post.image_url,
+        "likes_count": post.likes_count,
+        "comments_count": post.comments_count,
+        "created_at": post.created_at,
+        "status": "created",
+    }
 
 
 @router.post("/{post_id}/like", summary="Like or unlike a post")
 async def toggle_like(post_id: uuid.UUID, user_id: CurrentUserId, db: DBSession):
     """Toggle like on a post."""
-    from sqlalchemy import text
-    check_query = "SELECT id FROM likes WHERE user_id = :user_id AND post_id = :post_id;"
-    existing = (await db.execute(text(check_query), {"user_id": user_id, "post_id": post_id})).first()
+    post = await db.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    like_stmt = select(PostLike).where(PostLike.user_id == user_id, PostLike.post_id == post_id)
+    res = await db.execute(like_stmt)
+    existing = res.scalar_one_or_none()
 
     if existing:
-        await db.execute(text("DELETE FROM likes WHERE user_id = :user_id AND post_id = :post_id;"), {"user_id": user_id, "post_id": post_id})
-        await db.execute(text("UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = :post_id;"), {"post_id": post_id})
+        await db.delete(existing)
+        post.likes_count = max(0, (post.likes_count or 0) - 1)
         await db.commit()
-        return {"liked": False, "message": "Unliked post"}
+        return {"liked": False, "message": "Unliked post", "likes_count": post.likes_count}
     else:
-        like_id = uuid.uuid4()
-        await db.execute(text("INSERT INTO likes (id, user_id, post_id, created_at) VALUES (:id, :user_id, :post_id, NOW());"), {"id": like_id, "user_id": user_id, "post_id": post_id})
-        await db.execute(text("UPDATE posts SET likes_count = likes_count + 1 WHERE id = :post_id;"), {"post_id": post_id})
+        new_like = PostLike(user_id=user_id, post_id=post_id)
+        db.add(new_like)
+        post.likes_count = (post.likes_count or 0) + 1
         await db.commit()
-        return {"liked": True, "message": "Liked post"}
+        return {"liked": True, "message": "Liked post", "likes_count": post.likes_count}
 
 
-@router.post("/{post_id}/comments", summary="Comment on a post")
+@router.post("/{post_id}/comments", status_code=status.HTTP_201_CREATED, summary="Comment on a post")
 async def add_comment(post_id: uuid.UUID, data: CommentCreate, user_id: CurrentUserId, db: DBSession):
     """Add a comment to a post."""
-    from sqlalchemy import text
-    comment_id = uuid.uuid4()
-    query = """
-        INSERT INTO comments (id, user_id, post_id, content, created_at)
-        VALUES (:id, :user_id, :post_id, :content, NOW())
-        RETURNING *;
-    """
-    res = await db.execute(text(query), {"id": comment_id, "user_id": user_id, "post_id": post_id, "content": data.content})
-    await db.execute(text("UPDATE posts SET comments_count = comments_count + 1 WHERE id = :post_id;"), {"post_id": post_id})
+    post = await db.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    comment = PostComment(
+        user_id=user_id,
+        post_id=post_id,
+        content=data.content,
+    )
+    db.add(comment)
+    post.comments_count = (post.comments_count or 0) + 1
     await db.commit()
-    row = res.mappings().first()
-    return dict(row) if row else {"id": str(comment_id), "status": "created"}
+    await db.refresh(comment)
+
+    return {
+        "id": comment.id,
+        "user_id": comment.user_id,
+        "post_id": comment.post_id,
+        "content": comment.content,
+        "created_at": comment.created_at,
+        "status": "created",
+    }

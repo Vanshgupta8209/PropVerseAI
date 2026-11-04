@@ -1,2 +1,48 @@
+[project]
+name = "propverse-ai"
+version = "1.0.0"
+description = "PropVerse AI — Enterprise AI-Powered Real Estate Platform"
+requires-python = ">=3.12"
+dependencies = [
+    # Core Framework
+    "fastapi[standard]>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.18",
+    # Database
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "aiosqlite>=0.20.0",
+    "alembic>=1.14.0",
+    "greenlet>=3.1.0",
+    # Validation & Serialization
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.7.0",
+    "email-validator>=2.2.0",
+    # Authentication & Security
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.2.0",
+    # Redis & Caching
+    "redis[hiredis]>=5.2.0",
+    # Background Tasks
+    "celery[redis]>=5.4.0",
+    # HTTP Client
+    "httpx>=0.28.0",
+    # AI / LLM
+    "google-generativeai>=0.8.0",
+    "openai>=1.57.0",
+    # File Upload
+    "cloudinary>=1.41.0",
+    # Utilities
+    "python-dateutil>=2.9.0",
+    "orjson>=3.10.0",
+    "pillow>=11.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
 [tool.vercel]
 entrypoint = "backend.src.main:app"

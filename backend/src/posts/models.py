@@ -77,3 +77,4 @@ class PostComment(Base):
         default=lambda: datetime.now(timezone.utc),
         server_default=func.now(),
     )
+

@@ -47,3 +47,4 @@ class PropertyInquiry(Base):
         default=lambda: datetime.now(timezone.utc),
         server_default=func.now(),
     )
+

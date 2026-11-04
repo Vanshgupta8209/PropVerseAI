@@ -1,0 +1,13 @@
+{
+  "include": [
+    "backend"
+  ],
+  "exclude": [
+    "**/__pyrefly_virtual__/**",
+    "**/.venv/**"
+  ],
+  "extraPaths": [
+    "backend",
+    "backend/src"
+  ]
+}

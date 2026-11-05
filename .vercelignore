@@ -1,18 +1,11 @@
 # Vercel Deployment Ignore File
-# Excludes unnecessary directories and files from Serverless Function bundle
+# Excludes unnecessary development & cache files from deployment build container
 
-# Virtual environments & dependencies
+# Virtual environments & local dependencies
 .venv/
 venv/
 ENV/
 env/
-node_modules/
-frontend/node_modules/
-
-# Frontend source and public assets (frontend is built into frontend/dist)
-frontend/src/
-frontend/public/
-frontend/index.html
 
 # Documentation & tests
 docs/
@@ -46,8 +39,7 @@ backend/Dockerfile
 frontend/Dockerfile
 .github/
 
-# Misc
+# Git internals
 .git/
 .gitignore
 .gitattributes
-*.md

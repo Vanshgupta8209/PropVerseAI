@@ -1,0 +1,53 @@
+# Vercel Deployment Ignore File
+# Excludes unnecessary directories and files from Serverless Function bundle
+
+# Virtual environments & dependencies
+.venv/
+venv/
+ENV/
+env/
+node_modules/
+frontend/node_modules/
+
+# Frontend source and public assets (frontend is built into frontend/dist)
+frontend/src/
+frontend/public/
+frontend/index.html
+
+# Documentation & tests
+docs/
+tests/
+backend/tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database and cache files
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+backend/*.sqlite3
+
+# Python build artifacts and wheels
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.whl
+*.egg-info/
+dist/
+build/
+
+# Docker and CI
+docker-compose.yml
+Dockerfile
+backend/Dockerfile
+frontend/Dockerfile
+.github/
+
+# Misc
+.git/
+.gitignore
+.gitattributes
+*.md

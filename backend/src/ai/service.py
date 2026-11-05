@@ -1,13 +1,15 @@
 """
 AI Service — Machine Learning & LLM Service Layer.
-Integrates Gemini / OpenAI for natural language search parsing, price prediction,
-description generation, and conversational real estate assistance.
+Integrates Gemini (via direct async REST or SDK) for natural language search parsing,
+price prediction, description generation, and conversational real estate assistance.
 """
 
 import logging
 import re
 import warnings
 from typing import Any
+
+import httpx
 
 from src.core.config import get_settings
 
@@ -37,6 +39,44 @@ class AIService:
     def __init__(self):
         self.provider = settings.AI_PROVIDER
         self.gemini_key = settings.GEMINI_API_KEY
+
+    async def _call_gemini_rest(self, prompt: str, system_instruction: str | None = None) -> str | None:
+        """Call Google Gemini REST API asynchronously without heavy C-extensions."""
+        if not self.gemini_key:
+            return None
+
+        # Clean model name (e.g. "gemini-1.5-flash")
+        model = settings.AI_MODEL if settings.AI_MODEL else "gemini-1.5-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.gemini_key}"
+
+        payload: dict[str, Any] = {
+            "contents": [
+                {
+                    "parts": [{"text": prompt}]
+                }
+            ]
+        }
+        if system_instruction:
+            payload["system_instruction"] = {
+                "parts": [{"text": system_instruction}]
+            }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                res = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"].strip()
+                else:
+                    logger.warning("Gemini REST API returned status %s: %s", res.status_code, res.text[:200])
+        except Exception as exc:
+            logger.warning("Gemini REST API call error: %s", exc)
+
+        return None
 
     async def parse_natural_language_search(self, query: str) -> dict[str, Any]:
         """
@@ -153,20 +193,29 @@ class AIService:
         property_type = details.get("property_type", "Apartment")
         area = details.get("area_sqft", 1200)
 
+        prompt = (
+            f"Write a compelling, professional 3-sentence real estate property description for a property listing: "
+            f"Title: {title}, Type: {bedrooms}BHK {property_type}, City: {city}, Area: {area} sq.ft. "
+            f"Highlight luxury, modern architectural design, investment potential, and lifestyle features."
+        )
+
+        # 1. Try direct Gemini REST API
+        if self.gemini_key:
+            desc = await self._call_gemini_rest(prompt)
+            if desc:
+                return desc
+
+        # 2. Try SDK fallback if installed
         if _gemini_available and self.gemini_key and genai is not None:
             try:
                 model = genai.GenerativeModel(settings.AI_MODEL)  # type: ignore
-                prompt = (
-                    f"Write a compelling, professional 3-sentence real estate property description for a property listing: "
-                    f"Title: {title}, Type: {bedrooms}BHK {property_type}, City: {city}, Area: {area} sq.ft. "
-                    f"Highlight luxury, modern architectural design, investment potential, and lifestyle features."
-                )
                 res = model.generate_content(prompt)
                 if res and res.text:
                     return res.text.strip()
             except Exception as err:
-                logger.warning("Gemini AI description generation fallback triggered: %s", err)
+                logger.warning("Gemini AI SDK fallback triggered: %s", err)
 
+        # 3. Structured professional template fallback
         return (
             f"Presenting {title}, an exquisite {bedrooms}BHK {property_type} located in {city}. "
             f"Spanning {area} sq.ft. of meticulously designed living space, this property combines modern architectural "
@@ -177,6 +226,20 @@ class AIService:
         """Conversational AI real estate advisor using Gemini LLM with structured fallback."""
         msg = user_message.lower()
 
+        # 1. Try direct Gemini REST API
+        if self.gemini_key:
+            system_instruction = (
+                "You are PropVerse AI Advisor, an expert real estate AI assistant. "
+                "Provide concise, helpful, and professional advice regarding property buying, selling, legal queries, market trends, or home loans in India."
+            )
+            chat_reply = await self._call_gemini_rest(user_message, system_instruction=system_instruction)
+            if chat_reply:
+                return {
+                    "response": chat_reply,
+                    "suggested_actions": ["Search Properties", "Calculate EMI", "Contact Expert"],
+                }
+
+        # 2. Try SDK fallback if available
         if _gemini_available and self.gemini_key and genai is not None:
             try:
                 model = genai.GenerativeModel(settings.AI_MODEL)  # type: ignore
@@ -193,6 +256,7 @@ class AIService:
             except Exception as err:
                 logger.warning("Gemini AI Chat fallback triggered: %s", err)
 
+        # 3. Rule-based expert advisor fallback
         if "loan" in msg or "emi" in msg:
             reply = "You can calculate your exact monthly EMI and check eligibility using our interactive EMI Calculator tool in the platform."
         elif "buy" in msg or "search" in msg:

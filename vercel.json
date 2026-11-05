@@ -1,7 +1,21 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
+  "build": {
+    "env": {
+      "UV_LINK_MODE": "copy"
+    }
+  },
+  "env": {
+    "UV_LINK_MODE": "copy"
+  },
+  "buildCommand": "unset npm_config_cache_dir NPM_CONFIG_CACHE_DIR 2>/dev/null || true; cd frontend && npm install --prefer-offline --no-audit && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 15,
+      "memory": 1024
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
